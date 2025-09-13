@@ -1,13 +1,9 @@
-# Byte-compiled / optimized / DLL files
-# Ignorar ambiente virtual
 venv/
+*.log
+*.db
+output/
+LogsImages/
+PlayerAudio/
+PlayerImages/
+serial_id.txt
 
-# Ignorar arquivos grandes e temporários
-*.mp4
-*.dat
-*.dll
-*.lib
-*.pyd
-*.pyo
-*.pyc
-__pycache__/
