@@ -1,9 +1,19 @@
+# Ignorar ambientes virtuais
 venv/
+
+# Ignorar caches do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignorar logs e arquivos temporários
 *.log
 *.db
+serial_id.txt
+
+# Pastas de saída
 output/
 LogsImages/
 PlayerAudio/
 PlayerImages/
-serial_id.txt
-
