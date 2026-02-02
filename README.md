@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🤖 LIPE-Laboratorio-Inteligente-para-a-Educacao
 
 <div style="display: flex; align-items: center;"> 
@@ -67,3 +68,6 @@ python main.py
 ### 🤝 Agradecimentos
 A todos os professores, bolsistas, voluntários e colegas que contribuíram com ideias, testes e feedbacks durante o desenvolvimento deste projeto.
 
+=======
+# LIFE-Lab-of-Artificial-Inteligence-for-Education
+>>>>>>> 7d43cd0ddf7f2ef51cc51ff5fc24b104ce255b6c
