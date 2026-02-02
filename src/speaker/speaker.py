@@ -41,7 +41,7 @@ class SpeakerMic:
         except sr.UnknownValueError:
             return "Valor não reconhecido"
 
-    # para reconhecimentos numéricos do vosk, é necessário gravar o aúdio
+   
     def RecongnizeVosk(self, audio: AudioData) -> str:
         try:
             recognized_text = json.loads(self.rec.recognize_vosk(audio))

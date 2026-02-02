@@ -1,26 +1,29 @@
-import sqlite3
-from pathlib import Path
-import os
-dir = os.path.dirname(__file__)
-filename = os.path.join(dir, '../database.db')
+from datetime import datetime
 
-def add_score(score)->int | None:
-    try:
-        with sqlite3.connect(filename) as conn:
-            sql = "INSERT INTO scores(score, student_id, date_match) VALUES(?, ?, datetime())"
-            cur = conn.cursor()
-            cur.execute(sql, (score))
-            conn.commit()
-            return cur.lastrowid
-    except sqlite3.Error as e:
-        print(e)
-        return 0
+_scores: list[dict] = []
 
+def add_score(score: tuple[int, int]) -> int:
 
-def main():
-    score = (3, 1)
-    score_id = add_score(score)
-    print(f"Created a score with the id {score_id}")
+    new_id = len(_scores) + 1
+    score_entry = {
+        "id": new_id,
+        "score": score[0],
+        "student_id": score[1],
+        "date_match": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    _scores.append(score_entry)
+    return new_id
+
+def get_scores() -> list[dict]:
+    
+    return list(_scores)
+
+def reset_scores():
+  
+    _scores.clear()
+
 
 if __name__ == "__main__":
-    main()
+    score_id = add_score((3, 1))
+    print(f"Created a score with the id {score_id}")
+    print(get_scores())

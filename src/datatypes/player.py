@@ -4,8 +4,6 @@ from dataclasses import dataclass
 class Player:
     Id: int
     Name: str | None
-    Age: int | None
-    Team: str
-    Movements: list[int] | None
-    Active: bool
-    
+    Team: str = ""
+    Movements: list[int] | None = None
+    Active: bool = True

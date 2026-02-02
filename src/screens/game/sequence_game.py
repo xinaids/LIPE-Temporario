@@ -22,17 +22,27 @@ class SequenceGame(IGameMode, Game):
         self._mode = SEQUENCE
         self._list_movements = [LEFT_HAND, RIGHT_HAND, JUMP, CROUCH]
 
+       
+        self.timer_show_msg_teams = time.perf_counter()
+
     def show_movement(self):
         if self.is_showing_repeat_msg:
             self.show_repeat_msg()
             return
         
-        self.img = show_image_movements(
-            img=self.img,
-            command=self.my_identifier.command_at(self.mov_showing_seq),
-            seq=self.mov_showing_seq + 1,
-        )
+        if self.mov_showing_seq < self.my_identifier.qtd_movements():
+           self.img = show_image_movements(
+           img=self.img,
+           command=self.my_identifier.command_at(self.mov_showing_seq),
+           seq=self.mov_showing_seq + 1,
+            )
+        else:
+  
+           self.is_showing_repeat_msg = True
+           self.timer_repeat_msg = time.perf_counter()
+           return
 
+        
 
         delta = time.perf_counter() - self.timer_is_showing_movements
 
@@ -50,14 +60,21 @@ class SequenceGame(IGameMode, Game):
         if delta < TIME_SHOW_REPEAT_MESSAGE:
             self.img = draw_message_center_screen(self.img, "Repita os movimentos")
         else:
-            # para de mostrar o movimento na tela
+            
             self.is_showing_movements = False
             self.is_draw_circles = True
 
     def reset_variables_mode(self):
-        self.timer_is_showing_movements = time.perf_counter()
-        self.is_showing_repeat_msg = False
-        pass
+    
+       self.timer_is_showing_movements = time.perf_counter()
+       self.timer_repeat_msg = 0
+       self.timer_show_msg_teams = time.perf_counter()
+
+       self.mov_showing_seq = 0
+       self.is_showing_movements = True  
+       self.is_showing_repeat_msg = False
+       self.is_draw_circles = False
+
 
     def start(self, width: int, height: int):
         self.Show(width, height, self)

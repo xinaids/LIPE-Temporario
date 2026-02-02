@@ -24,7 +24,7 @@ class ConditionGame(IGameMode, Game):
         Game.__init__(self)
 
         self._mode = CONDITION
-        self._list_movements = [LEFT_HAND, RIGHT_HAND]
+        self._list_movements = [LEFT_HAND, RIGHT_HAND, JUMP, CROUCH]
 
     def show_movement(self):
         if not self.is_showing_representation:
@@ -86,20 +86,19 @@ class ConditionGame(IGameMode, Game):
         if delta < TIME_SHOW_REPEAT_MESSAGE:
             self.img = draw_message_center_screen(self.img, "Repita os movimentos")
         else:
-            # para de mostrar o movimento na tela
+        # para de mostrar o movimento na tela
             self.is_showing_movements = False
             self.is_draw_circles = True
             
     def color_move_representation(self):
         colors = [RED, BLUE, GREEN, YELLOW]
 
-        #sorteando todas as vezes o jogo ficou muito dificil
-        #então manter as cores fixas para cada movimento e utilizar apenas 3
+       
         self.move_in_colors = {
             LEFT_HAND: RED,
             RIGHT_HAND: BLUE,
-            # JUMP: GREEN,
-            # CROUCH: YELLOW,
+            JUMP: GREEN,
+            CROUCH: YELLOW,
         }
 
         # for mov in MOVEMENTS:

@@ -1,32 +1,34 @@
-#!/usr/bin/env python
-# coding: utf-8
+import pygame
+from src.datatypes.player import Player
 
+
+pygame.init()
 import pygame
 import pygame_gui
-from src.screens.players.players import PlayerScreen
 from src.screens.game_mode.game_mode import GameMode
 from src.screens.dialog.dialog import DialogScreen
 from src.constants.dialog import DIALOG_START_GAME
 from src.globals import variables
 
 class HomeScreen:
-    def __init__(self):
+    def __init__(self, jogadores):
         pygame.init()
         pygame.display.set_caption("LIFE: Lab of Artificial Inteligence for Education")
         self.window_surface = pygame.display.set_mode((1920, 1080), pygame.FULLSCREEN)
 
-        self.background = pygame.image.load("images/background.jpg")
+        self.background = pygame.image.load("images/lipe2.0.png")
         self.window_surface.blit(self.background, (0, 0))
         self.manager = pygame_gui.UIManager(
             (self.window_surface.get_width(), self.window_surface.get_height()),
             "src/styles/style.json",
         )
 
-        self.player_screen = PlayerScreen()
+       
+        self.jogadores = jogadores
+        variables.players = jogadores  
         self.dialog_screen = DialogScreen()
 
     def Show(self):
-
         btn_play = pygame_gui.elements.UIButton(
             pygame.Rect(0, -120, 500, 100),
             "JOGAR",
@@ -34,15 +36,8 @@ class HomeScreen:
             anchors={"centerx": "centerx", "centery": "centery"},
         )
 
-        btn_players = pygame_gui.elements.UIButton(
-            pygame.Rect(0, 0, 500, 100),
-            "JOGADORES",
-            self.manager,
-            anchors={"centerx": "centerx", "centery": "centery"},
-        )
-
         btn_quit = pygame_gui.elements.UIButton(
-            pygame.Rect(0, 120, 500, 100),
+            pygame.Rect(0, 0, 500, 100),
             "SAIR",
             self.manager,
             anchors={"centerx": "centerx", "centery": "centery"},
@@ -72,9 +67,8 @@ class HomeScreen:
                         self.game_mode.Show()
 
                     elif event.ui_element == btn_players:
-                        pygame.display.set_mode(flags=pygame.HIDDEN)
-                        self.player_screen.Show(*pygame.display.get_window_size())
-                        pygame.display.set_mode(flags=pygame.SHOWN)
+                        
+                        print("Jogadores atuais:", [j.Name for j in self.jogadores])
 
                 self.manager.process_events(event)
 
@@ -89,3 +83,6 @@ class HomeScreen:
             pygame.display.update()
 
         pygame.quit()
+
+
+

@@ -19,11 +19,11 @@ logging.basicConfig(
 )
 
 
-# classe que identifica os movimentos do usuário
+
 class Identifier(poses.Poses):
     def __init__(self, list_valid_movements:list[int]):
         
-        #TODO: Liberar apenas os metodos liberados para o tipo de jogo
+        #TODO: 
         self.MOVEMENTS_METHODS = [
             self.hand_left,
             self.hand_right,
@@ -37,18 +37,18 @@ class Identifier(poses.Poses):
         pass
 
     def process_image(self, img: MatLike):
-        # manda o mediapipe processar a imagem
+       
         self.copy_image = img.copy()
         result_processing = self.pose.process(self.copy_image)
-        # pego os pontos detectados na imagem
+        
         self.points = result_processing.pose_landmarks
 
-        if self.points:  # se foi identificado algum ponto...
+        if self.points:  
             self.mpDraw.draw_landmarks(
                 self.copy_image, self.points, self.mpPose.POSE_CONNECTIONS
             )
 
-            # capturo os dados das posições desejadas para este contexto
+           
             self.handRX = float(
                 self.points.landmark[self.mpPose.PoseLandmark.RIGHT_INDEX].x
             )
@@ -71,10 +71,10 @@ class Identifier(poses.Poses):
             )
 
     def hand_left(self) -> bool:
-        # distancia levando em consideração apenas a altura
+        
         distMaos = abs(self.handRY - self.handLY)
 
-        # se a distância das mãos e dos pés bater nas medidas, ele incrementa as contagens
+       
         if distMaos > 0.5:
             if self.noseY >= self.handRY:
                 return False
@@ -84,10 +84,10 @@ class Identifier(poses.Poses):
         return False
 
     def hand_right(self) -> bool:
-        # distancia levando em consideração apenas a altura
+        
         distMaos = abs(self.handRY - self.handLY)
 
-        # se a distância das mãos e dos pés bater nas medidas, ele incrementa as contagens
+        
         if distMaos > 0.5:
             if self.noseY >= self.handLY:
                 return False
@@ -99,7 +99,7 @@ class Identifier(poses.Poses):
     def jump_identifier(self) -> bool:
         actual_mid_y = (self.shoulderRY + self.shoulderLY) / 2
 
-        # aceita variações de menos de 30%
+        
         lower_bound = self.standing_mid_y - (self.standing_mid_y * 0.3)
 
         if actual_mid_y < lower_bound:
@@ -110,7 +110,7 @@ class Identifier(poses.Poses):
     def crouch_identifier(self) -> bool:
         actual_mid_y = (self.shoulderRY + self.shoulderLY) / 2
 
-        # aceita variações de mais de 30%
+        
         upper_bound = self.standing_mid_y + (self.standing_mid_y * 0.3)
 
         if actual_mid_y > upper_bound:
@@ -123,7 +123,7 @@ class Identifier(poses.Poses):
             return False
 
         mid_shoulders = (self.shoulderRY + self.shoulderLY) / 2
-        # verifica se a altura dos ombros está aceitavel
+        
         if (mid_shoulders > 0.8) or (mid_shoulders < 0.2):
             return False
 
@@ -154,6 +154,8 @@ class Identifier(poses.Poses):
 
     def identify_list_movements(self, serial_id: int) -> bool | None:
         self.identified_movement = None
+        if self.command is None:
+         return None
 
         if self.MOVEMENTS_METHODS[self.command - 1]():
             self.identified_movement = self.command
@@ -204,11 +206,18 @@ class Identifier(poses.Poses):
         return self.seq_command
 
     def reset_seq_command(self):
-        self.seq_command = 0
+      self.seq_command = 0
+      if self.list_commands:  # só acessa se não for vazia
         self.command = self.list_commands[self.seq_command]
+      else:
+        self.command = None
 
-    def command_at(self, pos: int) -> int:
+
+    def command_at(self, pos: int):
+      if 0 <= pos < len(self.list_commands):
         return self.list_commands[pos]
+      return None  # evita IndexError
+
 
     def points(self):
         return self.points

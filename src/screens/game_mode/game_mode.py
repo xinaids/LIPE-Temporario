@@ -40,6 +40,7 @@ class GameMode:
             self.manager,
             anchors={"centerx": "centerx", "centery": "centery"},
         )
+        """
 
         btn_condition = pygame_gui.elements.UIButton(
             pygame.Rect(0, 0, 500, 100),
@@ -54,7 +55,7 @@ class GameMode:
             self.manager,
             anchors={"centerx": "centerx", "centery": "centery"},
         )
-        btn_iteration.disable()
+        btn_iteration.disable()        """
 
         clock = pygame.time.Clock()
         is_running = True
