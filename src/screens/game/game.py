@@ -54,6 +54,15 @@ class Game:
         
         self.count_player_Show = 0
         self.show_team_id = "A"
+
+        # cronometros da exibicao de times/jogadores: inicializados aqui para
+        # existirem antes da primeira leitura (evita AttributeError no inicio da partida).
+        self.timer_show_msg_teams = time.perf_counter()
+        self.timer_show_players_teams = time.perf_counter()
+
+        # estados de fluxo lidos no loop principal antes de serem definidos no meio da logica.
+        self.is_time_to_start = False
+        self.is_showing_next_player = False
         
         self.is_showing_start_messages = False
         self.is_showing_movements = False
@@ -406,7 +415,7 @@ class Game:
                             self.game_mode.show_movement()
 
                         elif not self.is_movement_identified and not self.is_movement_wrong:
-                            self.movement_correct = self.my_identifier.identify_list_movements(self.serial_id)
+                            self.movement_correct = self.my_identifier.identify_list_movements(self.serial_id, self.expected_player.Name)
 
                             if self.movement_correct is None:
                                 pass
@@ -427,7 +436,7 @@ class Game:
                             else:
                                 self.call_next_player(True)
                         elif self.is_movement_identified:
-                            self.movement_correct = self.my_identifier.identify_list_movements(self.serial_id)
+                            self.movement_correct = self.my_identifier.identify_list_movements(self.serial_id, self.expected_player.Name)
                             self.show_identified_movement()
 
                 

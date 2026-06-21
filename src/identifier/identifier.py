@@ -19,11 +19,10 @@ logging.basicConfig(
 )
 
 
-
 class Identifier(poses.Poses):
-    def __init__(self, list_valid_movements:list[int]):
-        
-        #TODO: 
+    def __init__(self, list_valid_movements: list[int]):
+
+        # TODO:
         self.MOVEMENTS_METHODS = [
             self.hand_left,
             self.hand_right,
@@ -31,24 +30,32 @@ class Identifier(poses.Poses):
             self.crouch_identifier,
         ]
 
+        # escala do corpo do aluno, definida na calibracao (is_correct_positioned).
+        # serve para tornar a deteccao invariante ao tamanho/distancia do aluno.
+        self.body_unit = 0.0
+
+        # fracao da "unidade de corpo" usada como margem para pular/agachar.
+        # ponto de partida para calibrar nos testes: se disparar facil demais, aumente;
+        # se exigir um movimento exagerado, diminua.
+        self.JUMP_CROUCH_FACTOR = 0.8
+
         super().__init__()
 
     def __str__(self):
         pass
 
     def process_image(self, img: MatLike):
-       
+
         self.copy_image = img.copy()
         result_processing = self.pose.process(self.copy_image)
-        
+
         self.points = result_processing.pose_landmarks
 
-        if self.points:  
+        if self.points:
             self.mpDraw.draw_landmarks(
                 self.copy_image, self.points, self.mpPose.POSE_CONNECTIONS
             )
 
-           
             self.handRX = float(
                 self.points.landmark[self.mpPose.PoseLandmark.RIGHT_INDEX].x
             )
@@ -71,36 +78,25 @@ class Identifier(poses.Poses):
             )
 
     def hand_left(self) -> bool:
-        
-        distMaos = abs(self.handRY - self.handLY)
+        # lembrando: no MediaPipe, y MENOR = mais alto na tela.
+        # a regra e simplesmente: mao esquerda acima do nariz e a direita nao.
+        # isso e invariante ao tamanho do aluno (compara o aluno com ele mesmo).
+        left_up = self.handLY < self.noseY
+        right_up = self.handRY < self.noseY
 
-       
-        if distMaos > 0.5:
-            if self.noseY >= self.handRY:
-                return False
-            if self.noseY >= self.handLY:
-                return True
-
-        return False
+        return left_up and not right_up
 
     def hand_right(self) -> bool:
-        
-        distMaos = abs(self.handRY - self.handLY)
+        left_up = self.handLY < self.noseY
+        right_up = self.handRY < self.noseY
 
-        
-        if distMaos > 0.5:
-            if self.noseY >= self.handLY:
-                return False
-            if self.noseY >= self.handRY:
-                return True
-
-        return False
+        return right_up and not left_up
 
     def jump_identifier(self) -> bool:
         actual_mid_y = (self.shoulderRY + self.shoulderLY) / 2
 
-        
-        lower_bound = self.standing_mid_y - (self.standing_mid_y * 0.3)
+        # limiar proporcional ao corpo do aluno, e nao a posicao na tela.
+        lower_bound = self.standing_mid_y - (self.body_unit * self.JUMP_CROUCH_FACTOR)
 
         if actual_mid_y < lower_bound:
             return True
@@ -110,8 +106,7 @@ class Identifier(poses.Poses):
     def crouch_identifier(self) -> bool:
         actual_mid_y = (self.shoulderRY + self.shoulderLY) / 2
 
-        
-        upper_bound = self.standing_mid_y + (self.standing_mid_y * 0.3)
+        upper_bound = self.standing_mid_y + (self.body_unit * self.JUMP_CROUCH_FACTOR)
 
         if actual_mid_y > upper_bound:
             return True
@@ -123,15 +118,19 @@ class Identifier(poses.Poses):
             return False
 
         mid_shoulders = (self.shoulderRY + self.shoulderLY) / 2
-        
+
         if (mid_shoulders > 0.8) or (mid_shoulders < 0.2):
             return False
 
         self.standing_mid_y = mid_shoulders
 
+        # distancia nariz <-> ombros: usada como escala do corpo do aluno.
+        # evita que o limiar de pular/agachar dependa do tamanho na tela.
+        self.body_unit = abs(mid_shoulders - self.noseY)
+
         return True
-        
-    def sort_movements(self, list_movements:list[int], qtd: int = 1):
+
+    def sort_movements(self, list_movements: list[int], qtd: int = 1):
         self.list_commands = []
         for _ in range(qtd):
             self.list_commands.append(random.choice(list_movements))
@@ -152,15 +151,15 @@ class Identifier(poses.Poses):
             case mov.CROUCH:
                 return self.crouch_identifier()
 
-    def identify_list_movements(self, serial_id: int) -> bool | None:
+    def identify_list_movements(self, serial_id: int, player_name: str = "") -> bool | None:
         self.identified_movement = None
         if self.command is None:
-         return None
+            return None
 
         if self.MOVEMENTS_METHODS[self.command - 1]():
             self.identified_movement = self.command
             self.save_log(
-                mov.MOVEMENTS_ORDER[self.command], mov.MOVEMENTS_ORDER[self.command], serial_id
+                mov.MOVEMENTS_ORDER[self.command], mov.MOVEMENTS_ORDER[self.command], serial_id, player_name
             )
             return True
 
@@ -171,16 +170,17 @@ class Identifier(poses.Poses):
                     mov.MOVEMENTS_ORDER[self.command],
                     mov.MOVEMENTS_ORDER[i + 1],
                     serial_id,
+                    player_name,
                 )
                 return False
 
         return None
 
-    def save_log(self, mov_command: str, move_identified: str, serial_id: int):
+    def save_log(self, mov_command: str, move_identified: str, serial_id: int, player_name: str = ""):
         timestamp = time.time()
 
         logging.info(
-            f"{serial_id} - {str(timestamp)}, Movimento Esperado: {mov_command}, Retornado: {move_identified}, handRX: {self.handRX}, handRY: {self.handRY}, handLX: {self.handLX}, handLY: {self.handLY}, noseX: {self.noseX}, noseY: {self.noseY}, shoulderRY: {self.shoulderRY}, shoulderLY: {self.shoulderLY}, standing_mid_y: {self.standing_mid_y}"
+            f"{serial_id} - {str(timestamp)}, Jogador: {player_name}, Movimento Esperado: {mov_command}, Retornado: {move_identified}, handRX: {self.handRX}, handRY: {self.handRY}, handLX: {self.handLX}, handLY: {self.handLY}, noseX: {self.noseX}, noseY: {self.noseY}, shoulderRY: {self.shoulderRY}, shoulderLY: {self.shoulderLY}, standing_mid_y: {self.standing_mid_y}, body_unit: {self.body_unit}"
         )
 
         Path(DIRECTORY_LOGS_IMAGE).mkdir(exist_ok=True)
@@ -202,32 +202,18 @@ class Identifier(poses.Poses):
     def qtd_movements(self) -> int:
         return len(self.list_commands)
 
-    def seq_command(self) -> int:
-        return self.seq_command
-
     def reset_seq_command(self):
-      self.seq_command = 0
-      if self.list_commands:  # só acessa se não for vazia
-        self.command = self.list_commands[self.seq_command]
-      else:
-        self.command = None
-
+        self.seq_command = 0
+        if self.list_commands:  # so acessa se nao for vazia
+            self.command = self.list_commands[self.seq_command]
+        else:
+            self.command = None
 
     def command_at(self, pos: int):
-      if 0 <= pos < len(self.list_commands):
-        return self.list_commands[pos]
-      return None  # evita IndexError
-
-
-    def points(self):
-        return self.points
+        if 0 <= pos < len(self.list_commands):
+            return self.list_commands[pos]
+        return None  # evita IndexError
 
     def next_movement(self):
         self.seq_command += 1
         self.command = self.list_commands[self.seq_command]
-        
-    def list_commands(self, new_list_commands:list):
-        self.list_commands = new_list_commands
-        
-    def list_commands(self)->list:
-        return self.list_commands
