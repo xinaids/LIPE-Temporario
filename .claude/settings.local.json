@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 *)",
+      "Bash(iconv -f UTF-16LE -t UTF-8 requirements.txt)"
+    ]
+  }
+}

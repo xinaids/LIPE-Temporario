@@ -26,6 +26,13 @@ class ConditionGame(IGameMode, Game):
         self._mode = CONDITION
         self._list_movements = [LEFT_HAND, RIGHT_HAND, JUMP, CROUCH]
 
+        self.is_showing_representation = False
+        self.is_showed_representation = False
+        self.is_showing_repeat_msg = False
+        self.move_representation_seq = 1
+        self.move_in_colors = {}
+        self.timer_repeat_msg = 0
+
     def show_movement(self):
         if not self.is_showing_representation:
             self.is_showing_representation = True

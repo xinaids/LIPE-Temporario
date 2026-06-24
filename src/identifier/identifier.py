@@ -33,16 +33,32 @@ class Identifier(poses.Poses):
         # escala do corpo do aluno, definida na calibracao (is_correct_positioned).
         # serve para tornar a deteccao invariante ao tamanho/distancia do aluno.
         self.body_unit = 0.0
+        self.standing_mid_y = 0.0
 
         # fracao da "unidade de corpo" usada como margem para pular/agachar.
         # ponto de partida para calibrar nos testes: se disparar facil demais, aumente;
         # se exigir um movimento exagerado, diminua.
-        self.JUMP_CROUCH_FACTOR = 0.8
+        self.JUMP_CROUCH_FACTOR = 0.35
+
+        # ── novo: protecao contra disparos em sequencia ──
+        # tempo minimo (em segundos) entre uma deteccao (certa ou errada) e a proxima.
+        # evita que frames de transicao (baixando o braco, voltando da posicao) 
+        # sejam interpretados como erro, e elimina "errou sem eu ter feito nada".
+        self.DETECTION_COOLDOWN = 0.6
+        self._last_detection_time = 0.0
 
         super().__init__()
 
     def __str__(self):
         pass
+
+    def _cooldown_ok(self) -> bool:
+        """Retorna True se ja passou tempo suficiente desde a ultima deteccao."""
+        return (time.time() - self._last_detection_time) >= self.DETECTION_COOLDOWN
+
+    def _marcar_deteccao(self):
+        """Registra o instante de uma deteccao (para o cooldown)."""
+        self._last_detection_time = time.time()
 
     def process_image(self, img: MatLike):
 
@@ -119,7 +135,7 @@ class Identifier(poses.Poses):
 
         mid_shoulders = (self.shoulderRY + self.shoulderLY) / 2
 
-        if (mid_shoulders > 0.8) or (mid_shoulders < 0.2):
+        if (mid_shoulders > 0.9) or (mid_shoulders < 0.1):
             return False
 
         self.standing_mid_y = mid_shoulders
@@ -156,8 +172,13 @@ class Identifier(poses.Poses):
         if self.command is None:
             return None
 
+        # ── cooldown: ignora frames ate passar o tempo minimo ──
+        if not self._cooldown_ok():
+            return None
+
         if self.MOVEMENTS_METHODS[self.command - 1]():
             self.identified_movement = self.command
+            self._marcar_deteccao()
             self.save_log(
                 mov.MOVEMENTS_ORDER[self.command], mov.MOVEMENTS_ORDER[self.command], serial_id, player_name
             )
@@ -166,6 +187,7 @@ class Identifier(poses.Poses):
         for i, fn in enumerate(self.MOVEMENTS_METHODS):
             if fn():
                 self.identified_movement = i + 1
+                self._marcar_deteccao()
                 self.save_log(
                     mov.MOVEMENTS_ORDER[self.command],
                     mov.MOVEMENTS_ORDER[i + 1],

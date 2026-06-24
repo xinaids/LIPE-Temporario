@@ -22,7 +22,7 @@ class SequenceGame(IGameMode, Game):
         self._mode = SEQUENCE
         self._list_movements = [LEFT_HAND, RIGHT_HAND, JUMP, CROUCH]
 
-       
+        self.is_showing_repeat_msg = False
         self.timer_show_msg_teams = time.perf_counter()
 
     def show_movement(self):
