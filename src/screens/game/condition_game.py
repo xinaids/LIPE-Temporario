@@ -93,9 +93,9 @@ class ConditionGame(IGameMode, Game):
         if delta < TIME_SHOW_REPEAT_MESSAGE:
             self.img = draw_message_center_screen(self.img, "Repita os movimentos")
         else:
-        # para de mostrar o movimento na tela
             self.is_showing_movements = False
             self.is_draw_circles = True
+            self.my_identifier.arm_detection()
             
     def color_move_representation(self):
         colors = [RED, BLUE, GREEN, YELLOW]

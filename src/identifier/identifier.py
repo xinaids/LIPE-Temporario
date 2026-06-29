@@ -38,14 +38,19 @@ class Identifier(poses.Poses):
         # fracao da "unidade de corpo" usada como margem para pular/agachar.
         # ponto de partida para calibrar nos testes: se disparar facil demais, aumente;
         # se exigir um movimento exagerado, diminua.
-        self.JUMP_CROUCH_FACTOR = 0.35
+        self.JUMP_FACTOR = 0.20
+        self.CROUCH_FACTOR = 0.35
 
         # ── novo: protecao contra disparos em sequencia ──
         # tempo minimo (em segundos) entre uma deteccao (certa ou errada) e a proxima.
         # evita que frames de transicao (baixando o braco, voltando da posicao) 
         # sejam interpretados como erro, e elimina "errou sem eu ter feito nada".
         self.DETECTION_COOLDOWN = 0.6
-        self._last_detection_time = 0.0
+        self._last_detection_time = time.time()
+
+        self._jump_confirm_count = 0
+        self._crouch_confirm_count = 0
+        self.CONFIRM_FRAMES_REQUIRED = 3
 
         super().__init__()
 
@@ -59,6 +64,15 @@ class Identifier(poses.Poses):
     def _marcar_deteccao(self):
         """Registra o instante de uma deteccao (para o cooldown)."""
         self._last_detection_time = time.time()
+        self._jump_confirm_count = 0
+        self._crouch_confirm_count = 0
+
+    def arm_detection(self):
+        """Bloqueia detecção por DETECTION_COOLDOWN após o fim da fase de demo.
+        Chame sempre que is_showing_movements transitar de True para False."""
+        self._last_detection_time = time.time()
+        self._jump_confirm_count = 0
+        self._crouch_confirm_count = 0
 
     def process_image(self, img: MatLike):
 
@@ -110,24 +124,31 @@ class Identifier(poses.Poses):
 
     def jump_identifier(self) -> bool:
         actual_mid_y = (self.shoulderRY + self.shoulderLY) / 2
+        lower_bound = self.standing_mid_y - (self.body_unit * self.JUMP_FACTOR)
 
-        # limiar proporcional ao corpo do aluno, e nao a posicao na tela.
-        lower_bound = self.standing_mid_y - (self.body_unit * self.JUMP_CROUCH_FACTOR)
+        print(
+            f"[JUMP] actual={actual_mid_y:.3f} bound={lower_bound:.3f} "
+            f"diff={self.standing_mid_y - actual_mid_y:.4f} body_unit={self.body_unit:.4f}"
+        )
 
         if actual_mid_y < lower_bound:
-            return True
-
-        return False
+            self._jump_confirm_count += 1
+            self._crouch_confirm_count = 0
+            return self._jump_confirm_count >= self.CONFIRM_FRAMES_REQUIRED
+        else:
+            self._jump_confirm_count = 0
+            return False
 
     def crouch_identifier(self) -> bool:
         actual_mid_y = (self.shoulderRY + self.shoulderLY) / 2
-
-        upper_bound = self.standing_mid_y + (self.body_unit * self.JUMP_CROUCH_FACTOR)
-
+        upper_bound = self.standing_mid_y + (self.body_unit * self.CROUCH_FACTOR)
         if actual_mid_y > upper_bound:
-            return True
-
-        return False
+            self._crouch_confirm_count += 1
+            self._jump_confirm_count = 0
+            return self._crouch_confirm_count >= self.CONFIRM_FRAMES_REQUIRED
+        else:
+            self._crouch_confirm_count = 0
+            return False
 
     def is_correct_positioned(self) -> bool:
         if self.shoulderRY == 0 or self.shoulderLY == 0:
@@ -176,6 +197,9 @@ class Identifier(poses.Poses):
         if not self._cooldown_ok():
             return None
 
+        if self.body_unit < 0.05:
+            return None
+
         if self.MOVEMENTS_METHODS[self.command - 1]():
             self.identified_movement = self.command
             self._marcar_deteccao()
@@ -183,6 +207,21 @@ class Identifier(poses.Poses):
                 mov.MOVEMENTS_ORDER[self.command], mov.MOVEMENTS_ORDER[self.command], serial_id, player_name
             )
             return True
+
+        # quando o pedido é JUMP, braços sobem naturalmente durante o salto:
+        # ignorar hand_left/hand_right; só registrar erro se for agache
+        if self.command == mov.JUMP:
+            if self.crouch_identifier():
+                self.identified_movement = mov.CROUCH
+                self._marcar_deteccao()
+                self.save_log(
+                    mov.MOVEMENTS_ORDER[self.command],
+                    mov.MOVEMENTS_ORDER[mov.CROUCH],
+                    serial_id,
+                    player_name,
+                )
+                return False
+            return None
 
         for i, fn in enumerate(self.MOVEMENTS_METHODS):
             if fn():

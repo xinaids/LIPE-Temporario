@@ -25,7 +25,8 @@ from src.draw.draw import (
     apply_filter,
     write_message,
     draw_confetti,
-    show_score
+    show_score,
+    show_error_feedback,
 )
 from database.students.students import select_students
 from database.scores.scores import add_score
@@ -205,8 +206,8 @@ class Game:
       
         self.reset_variables()
         self.game_mode.reset_variables_mode()
+        self.my_identifier.arm_detection()
 
-        
         self.sort_movement = True
         self.is_showing_start_messages = True
         self.number_start_message = 0
@@ -433,6 +434,12 @@ class Game:
                             delta = time.perf_counter() - self.timer_is_movement_wrong
                             if delta < 4:
                                 self.img = apply_filter(self.img, colors.RED)
+                                if self.my_identifier.identified_movement is not None:
+                                    self.img = show_error_feedback(
+                                        self.img,
+                                        self.my_identifier.identified_movement,
+                                        self.my_identifier.command,
+                                    )
                             else:
                                 self.call_next_player(True)
                         elif self.is_movement_identified:

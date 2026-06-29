@@ -417,6 +417,53 @@ def draw_confetti(img, confetti_particles: List[Confetti]):
     
     return img
 
+def show_error_feedback(img: MatLike, detected: int, expected: int) -> MatLike:
+    h, w, _ = img.shape
+    img_size = min(180, h // 3)
+
+    def load_and_resize(movement_idx):
+        if movement_idx is None or movement_idx not in mov.MOVEMENTS_IMAGES:
+            return None
+        m = cv2.imread("images" + os.sep + mov.MOVEMENTS_IMAGES[movement_idx], cv2.IMREAD_UNCHANGED)
+        return cv2.resize(m, (img_size, img_size)) if m is not None else None
+
+    img_detected = load_and_resize(detected)
+    img_expected = load_and_resize(expected)
+
+    img_y = h // 2 - img_size // 2
+    left_x  = w // 4 - img_size // 2
+    right_x = 3 * w // 4 - img_size // 2
+
+    img_copy = img.copy()
+    for m_img, x in [(img_detected, left_x), (img_expected, right_x)]:
+        if m_img is not None:
+            try:
+                cvzone.overlayPNG(img_copy, m_img, [x, img_y])
+            except Exception:
+                img_copy[img_y:img_y+img_size, x:x+img_size] = m_img[:, :, :3]
+
+    pil_image = Image.fromarray(img_copy)
+    draw_pil = ImageDraw.Draw(pil_image)
+    font_label = ImageFont.truetype(FONT_ARIAL_PATH, size=36)
+    font_name  = ImageFont.truetype(FONT_ARIAL_PATH, size=28)
+
+    label_y = img_y - 55
+    name_y  = img_y + img_size + 10
+
+    for x, label, name in [
+        (left_x,  "Você fez:",    mov.MOVEMENTS_ORDER.get(detected, "?")),
+        (right_x, "Deveria ser:", mov.MOVEMENTS_ORDER.get(expected, "?")),
+    ]:
+        for text, font, y in [(label, font_label, label_y), (name, font_name, name_y)]:
+            _, _, tw, _ = font.getbbox(text)
+            draw_pil.text(
+                (x + (img_size - tw) // 2, y), text,
+                font=font, fill=(255, 255, 255), stroke_width=2, stroke_fill=(0, 0, 0),
+            )
+
+    return np.asarray(pil_image)
+
+
 def draw_text_top_right(img: MatLike, order: str) ->MatLike:
     pil_image = Image.fromarray(img)
 
